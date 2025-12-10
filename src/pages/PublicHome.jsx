@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import logo from '../logo.png';
 
 const PublicHome = () => {
   return (
@@ -8,9 +9,8 @@ const PublicHome = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-medical-blue-600">
-                DoctorPath AI
-              </h1>
+              <img src={logo} alt="DoctorPath AI" className="h-10 w-10 mr-3 rounded-lg object-contain" />
+              <h1 className="text-2xl font-bold text-medical-blue-600">DoctorPath AI</h1>
             </div>
             <div className="flex space-x-3">
               <Link
@@ -38,7 +38,7 @@ const PublicHome = () => {
             <span className="block text-medical-blue-600 mt-2">for Cancer Detection</span>
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Connecting patients, doctors, and administrators with AI-powered diagnostic tools
+            Connecting patients and doctors with AI-powered diagnostic tools
             to improve cancer detection and treatment outcomes for Liver, Lung, and Breast cancer.
           </p>
           <div className="flex justify-center space-x-4">

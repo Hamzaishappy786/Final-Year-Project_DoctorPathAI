@@ -10,6 +10,7 @@ const DoctorDataEntry = () => {
   const [generating, setGenerating] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [modelStatus, setModelStatus] = useState('');
   
   // Form data
   const [clinicalNotes, setClinicalNotes] = useState('');
@@ -111,6 +112,7 @@ const DoctorDataEntry = () => {
     setSaving(true);
     setError('');
     setSuccess('');
+    setModelStatus('');
 
     try {
       // Convert files to base64 for storage
@@ -155,6 +157,13 @@ const DoctorDataEntry = () => {
       
       if (result.success) {
         setSuccess('Data saved successfully!');
+        if (result.modelSuccess) {
+          setModelStatus('Model inference completed and attached to this entry.');
+        } else if (result.modelMessage) {
+          setModelStatus(`Model inference warning: ${result.modelMessage}`);
+        } else {
+          setModelStatus('Model inference was not run.');
+        }
         // Reset form
         setClinicalNotes('');
         setPatientData('');
@@ -233,6 +242,11 @@ const DoctorDataEntry = () => {
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
           {success}
+        </div>
+      )}
+      {modelStatus && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+          {modelStatus}
         </div>
       )}
       {error && (

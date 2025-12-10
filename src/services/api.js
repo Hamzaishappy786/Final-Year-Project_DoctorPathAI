@@ -1,4 +1,5 @@
-import { mockPatients, mockDoctors, mockAdmins, mockAppointments, chatbotResponses } from './mockData';
+import { mockPatients, mockDoctors, mockAppointments, chatbotResponses, mockHospitals } from './mockData';
+import runMedgemmaInference from './modelClient';
 
 // Simulate API delay
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
@@ -31,6 +32,14 @@ const getAllDoctorsData = () => {
   return [...mockDoctors, ...storedDoctors];
 };
 
+const getStoredHospitals = () => getStoredUsers('hospitals');
+
+const getStoredDoctorRequests = () => getStoredUsers('doctorRequests');
+
+const saveDoctorRequests = (requests) => {
+  saveStoredUsers('doctorRequests', requests);
+};
+
 // Signup function
 export const signup = async (formData) => {
   await delay(1000);
@@ -41,9 +50,8 @@ export const signup = async (formData) => {
   // Check if email already exists
   const existingPatient = allPatients.find(p => p.email === formData.email);
   const existingDoctor = allDoctors.find(d => d.email === formData.email);
-  const existingAdmin = mockAdmins.find(a => a.email === formData.email);
   
-  if (existingPatient || existingDoctor || existingAdmin) {
+  if (existingPatient || existingDoctor) {
     return {
       success: false,
       message: 'Email already registered. Please use a different email or login.'
@@ -91,6 +99,7 @@ export const signup = async (formData) => {
       phone: formData.phone,
       experience: formData.experience || '0 years',
       qualifications: formData.qualifications || '',
+      hospital: formData.hospital || 'Independent / Private Clinic',
       patients: []
     };
     
@@ -149,20 +158,6 @@ export const login = async (email, password) => {
     };
   }
   
-  // Check admin
-  const admin = mockAdmins.find(a => a.email === email);
-  if (admin) {
-    return {
-      success: true,
-      user: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: 'admin'
-      }
-    };
-  }
-  
   return {
     success: false,
     message: 'Invalid email or password'
@@ -212,6 +207,102 @@ export const getDoctorPatients = async (doctorId) => {
 export const getAllPatients = async () => {
   await delay(600);
   return getAllPatientsData();
+};
+
+export const getHospitals = async () => {
+  await delay(300);
+  const stored = getStoredHospitals();
+  return [...mockHospitals, ...stored];
+};
+
+export const getDoctorsByHospital = async (hospitalName) => {
+  await delay(500);
+  const doctors = getAllDoctorsData();
+  if (!hospitalName || hospitalName === 'all') return doctors;
+  return doctors.filter((doc) => (doc.hospital || 'Independent / Private Clinic') === hospitalName);
+};
+
+export const createDoctorRequest = async ({
+  patientId,
+  doctorId,
+  hospital,
+  note,
+  dataShare
+}) => {
+  await delay(600);
+
+  const allPatients = getAllPatientsData();
+  const allDoctors = getAllDoctorsData();
+  const patient = allPatients.find((p) => p.id === patientId);
+  const doctor = allDoctors.find((d) => d.id === doctorId);
+
+  if (!patient || !doctor) {
+    return { success: false, message: 'Doctor or patient not found' };
+  }
+
+  const requests = getStoredDoctorRequests();
+  const newRequest = {
+    id: Date.now(),
+    patientId,
+    patientName: patient.name,
+    doctorId,
+    doctorName: doctor.name,
+    hospital: hospital || doctor.hospital || 'Independent / Private Clinic',
+    note: note || '',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    scheduleNote: null,
+    proposedSlot: null,
+    dataShare:
+      dataShare && dataShare.allowDataShare
+        ? {
+            allowDataShare: true,
+            note: dataShare.note || '',
+            fileName: dataShare.fileName || null,
+            fileSize: dataShare.fileSize || null,
+            fileType: dataShare.fileType || null,
+            fileContent: dataShare.fileContent || null
+          }
+        : null
+  };
+
+  requests.push(newRequest);
+  saveDoctorRequests(requests);
+
+  return { success: true, request: newRequest };
+};
+
+export const getPatientDoctorRequests = async (patientId) => {
+  await delay(400);
+  const requests = getStoredDoctorRequests();
+  return requests.filter((req) => req.patientId === patientId);
+};
+
+export const getDoctorRequests = async (doctorId) => {
+  await delay(400);
+  const requests = getStoredDoctorRequests();
+  return requests.filter((req) => req.doctorId === doctorId);
+};
+
+export const updateDoctorRequestStatus = async (requestId, status, { scheduleNote, proposedSlot } = {}) => {
+  await delay(400);
+  const requests = getStoredDoctorRequests();
+  const idx = requests.findIndex((req) => req.id === requestId);
+
+  if (idx === -1) {
+    return { success: false, message: 'Request not found' };
+  }
+
+  requests[idx] = {
+    ...requests[idx],
+    status,
+    scheduleNote: scheduleNote || requests[idx].scheduleNote,
+    proposedSlot: proposedSlot || requests[idx].proposedSlot,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveDoctorRequests(requests);
+  return { success: true, request: requests[idx] };
 };
 
 export const getAllAppointments = async () => {
@@ -343,20 +434,6 @@ export const getChatbotResponse = async (message) => {
   return randomResponse;
 };
 
-// Admin APIs
-export const getAdminStats = async () => {
-  await delay(600);
-  const allPatients = getAllPatientsData();
-  const allDoctors = getAllDoctorsData();
-  return {
-    totalPatients: allPatients.length,
-    totalDoctors: allDoctors.length,
-    totalAppointments: mockAppointments.length,
-    upcomingAppointments: mockAppointments.filter(a => a.status === 'upcoming').length,
-    completedAppointments: mockAppointments.filter(a => a.status === 'completed').length
-  };
-};
-
 // Profile APIs
 export const getUserProfile = async (userId, userRole) => {
   await delay(500);
@@ -383,15 +460,6 @@ export const getUserProfile = async (userId, userRole) => {
         ...doctor, 
         role: 'doctor',
         profileImage: storedImage?.image || doctor.profileImage || null
-      };
-    }
-  } else if (userRole === 'admin') {
-    const admin = mockAdmins.find(a => a.id === userId);
-    if (admin) {
-      return { 
-        ...admin, 
-        role: 'admin',
-        profileImage: storedImage?.image || admin.profileImage || null
       };
     }
   }
@@ -502,32 +570,6 @@ export const updateUserProfile = async (userId, userRole, updatedData) => {
         };
       }
     }
-  } else if (userRole === 'admin') {
-    const admin = mockAdmins.find(a => a.id === userId);
-    if (admin) {
-      // Store profile image separately for mock users
-      if (updatedData.profileImage) {
-        const profileImages = getStoredUsers('profileImages');
-        const existingIndex = profileImages.findIndex(img => img.userId === userId && img.role === 'admin');
-        if (existingIndex !== -1) {
-          profileImages[existingIndex].image = updatedData.profileImage;
-        } else {
-          profileImages.push({ userId, role: 'admin', image: updatedData.profileImage });
-        }
-        saveStoredUsers('profileImages', profileImages);
-      }
-      
-      return {
-        success: true,
-        user: {
-          id: admin.id,
-          name: updatedData.name || admin.name,
-          email: updatedData.email || admin.email,
-          role: 'admin'
-        },
-        message: 'Profile updated (mock data is read-only)'
-      };
-    }
   }
   
   return {
@@ -552,10 +594,36 @@ export const savePatientData = async (data) => {
     storedData.push(entry);
     saveStoredUsers('patientDataEntries', storedData);
     
+    // Kick off medgemma inference (non-blocking)
+    let modelResult = null;
+    const inferencePayload = {
+      patientId: entry.patientId,
+      doctorId: entry.doctorId,
+      clinicalNotes: entry.clinicalNotes,
+      patientData: entry.patientData,
+      patientDataFileName: entry.patientDataFileName,
+      imagingData: entry.imagingData,
+      timestamp: entry.timestamp,
+    };
+
+    const inferenceResponse = await runMedgemmaInference(inferencePayload);
+    if (inferenceResponse.success) {
+      modelResult = inferenceResponse.data;
+    }
+
+    const enrichedEntry = { ...entry, modelResult };
+    const idx = storedData.findIndex((e) => e.id === entry.id);
+    if (idx !== -1) {
+      storedData[idx] = enrichedEntry;
+      saveStoredUsers('patientDataEntries', storedData);
+    }
+    
     return {
       success: true,
       dataSaved: true,
-      entryId: entry.id
+      entryId: entry.id,
+      modelSuccess: Boolean(modelResult),
+      modelMessage: inferenceResponse.success ? 'Model inference completed.' : inferenceResponse.message,
     };
   } catch (error) {
     return {
@@ -590,72 +658,26 @@ export const generateKnowledgeGraph = async (patientId) => {
     // Get the latest entry
     const latestEntry = entries[entries.length - 1];
     
-    // ============================================
-    // PYTHON SCRIPT INTEGRATION POINT
-    // ============================================
-    // TODO: Replace this section with your Python backend script call
-    // 
-    // Your Python script should:
-    // 1. Accept the following data:
-    //    - clinicalNotes: string (text)
-    //    - patientData: string (genomic/other data in text/JSON/CSV format)
-    //    - imagingData: array of base64-encoded images with metadata
-    //
-    // 2. Process the data and generate a knowledge graph
-    //
-    // 3. Return a knowledge graph structure (nodes, edges, relationships)
-    //
-    // Example API call structure:
-    /*
-    const response = await fetch('/api/generate-knowledge-graph', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        patientId: patientId,
-        clinicalNotes: latestEntry.clinicalNotes,
-        patientData: latestEntry.patientData,
-        patientDataFileName: latestEntry.patientDataFileName,
-        imagingData: latestEntry.imagingData, // Array of {name, type, data, size, mimeType}
-        timestamp: latestEntry.timestamp
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to generate knowledge graph');
-    }
-    
-    const result = await response.json();
-    // Expected result structure:
-    // {
-    //   success: true,
-    //   knowledgeGraph: {
-    //     nodes: [{id, label, type, properties}],
-    //     edges: [{from, to, label, properties}],
-    //     metadata: {...}
-    //   }
-    // }
-    */
-    // ============================================
-    
-    // For now, simulate the knowledge graph generation
-    // In production, replace this with actual Python script call
-    const knowledgeGraphData = {
-      patientId: patientId,
+    // If the latest entry already contains model output, use it
+    const graphFromModel = latestEntry.modelResult?.graph || null;
+    const metadata = latestEntry.modelResult?.metadata || latestEntry.modelResult || {};
+
+    const knowledgeGraphData = graphFromModel
+      ? {
+          patientId,
+          generatedAt: new Date().toISOString(),
+          nodes: graphFromModel.nodes || [],
+          edges: graphFromModel.edges || [],
+          metadata,
+          status: 'generated',
+        }
+      : {
+          patientId,
       generatedAt: new Date().toISOString(),
-      nodes: [
-        { id: 'patient', label: 'Patient', type: 'entity' },
-        { id: 'diagnosis', label: 'Diagnosis', type: 'concept' },
-        { id: 'treatment', label: 'Treatment', type: 'concept' }
-      ],
-      edges: [
-        { from: 'patient', to: 'diagnosis', label: 'has' },
-        { from: 'diagnosis', to: 'treatment', label: 'requires' }
-      ],
-      // Placeholder for actual graph data from Python script
-      graphData: null,
-      status: 'generated'
+          nodes: [],
+          edges: [],
+          metadata: { message: 'No model graph available. Please run inference.' },
+          status: 'missing',
     };
     
     // Store knowledge graph

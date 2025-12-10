@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getDoctorPatients, calculateDiagnosis } from '../services/api';
+import { getDoctorPatients, calculateDiagnosis, getDoctorRequests, updateDoctorRequestStatus } from '../services/api';
 
 const DoctorDashboard = () => {
   const [patients, setPatients] = useState([]);
@@ -12,15 +12,25 @@ const DoctorDashboard = () => {
   const [additionalFactor, setAdditionalFactor] = useState('');
   const [diagnosisResult, setDiagnosisResult] = useState(null);
   const [calculating, setCalculating] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [requestResponses, setRequestResponses] = useState({});
+  const [processingRequestId, setProcessingRequestId] = useState(null);
+  const [doctorId, setDoctorId] = useState(null);
+  const [requestError, setRequestError] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (user) {
+        setDoctorId(user.id);
         const data = await getDoctorPatients(user.id);
         setPatients(data);
+        const reqs = await getDoctorRequests(user.id);
+        setRequests(reqs);
       }
       setLoading(false);
+      setRequestsLoading(false);
     };
     loadData();
   }, []);
@@ -58,6 +68,50 @@ const DoctorDashboard = () => {
     if (cancerType === 'lung') return 'e.g., 5.5';
     if (cancerType === 'breast') return 'e.g., 45';
     return 'Enter value';
+  };
+
+  const sortedRequests = [...requests].sort(
+    (a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
+  );
+
+  const updateResponseField = (requestId, field, value) => {
+    setRequestResponses((prev) => ({
+      ...prev,
+      [requestId]: {
+        ...prev[requestId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleRequestDecision = async (requestId, status) => {
+    if (!doctorId) return;
+    setProcessingRequestId(requestId);
+    setRequestError('');
+
+    const payload = requestResponses[requestId] || {};
+
+    try {
+      const result = await updateDoctorRequestStatus(requestId, status, {
+        scheduleNote: payload.note || '',
+        proposedSlot: payload.slot || ''
+      });
+
+      if (result.success) {
+        const refreshed = await getDoctorRequests(doctorId);
+        setRequests(refreshed);
+        setRequestResponses((prev) => ({
+          ...prev,
+          [requestId]: { slot: '', note: '' }
+        }));
+      } else {
+        setRequestError(result.message || 'Unable to update request.');
+      }
+    } catch (err) {
+      setRequestError('Failed to update request. Please try again.');
+    } finally {
+      setProcessingRequestId(null);
+    }
   };
 
   if (loading) {
@@ -115,6 +169,154 @@ const DoctorDashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Patient Requests & Shared Data */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900">Patient Requests</h3>
+            <p className="text-sm text-gray-600">
+              Review doctor selection requests, share timings, and download patient-provided data.
+            </p>
+          </div>
+        </div>
+
+        {requestError && (
+          <div className="mb-3 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {requestError}
+          </div>
+        )}
+
+        {requestsLoading ? (
+          <p className="text-gray-500 text-sm">Loading requests...</p>
+        ) : sortedRequests.length === 0 ? (
+          <p className="text-gray-500 text-sm">No requests yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {sortedRequests.map((req) => (
+              <div
+                key={req.id}
+                className="border border-gray-200 rounded-lg p-4 hover:border-medical-blue-300 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">{req.patientName || 'Patient'}</p>
+                    <p className="text-xs text-gray-500">{req.hospital}</p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      req.status === 'accepted'
+                        ? 'bg-green-100 text-green-700'
+                        : req.status === 'declined'
+                        ? 'bg-red-100 text-red-700'
+                        : req.status === 'reschedule'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-medical-blue-100 text-medical-blue-700'
+                    }`}
+                  >
+                    {req.status || 'pending'}
+                  </span>
+                </div>
+
+                {req.note && <p className="text-sm text-gray-700 mb-2">{req.note}</p>}
+
+                {req.dataShare?.allowDataShare && (
+                  <div className="mb-3 p-3 rounded-lg bg-medical-blue-50 border border-medical-blue-100">
+                    <p className="text-sm font-semibold text-medical-blue-800">Patient shared data</p>
+                    {req.dataShare.note && (
+                      <p className="text-xs text-medical-blue-900 mb-1">{req.dataShare.note}</p>
+                    )}
+                    {req.dataShare.fileName && (
+                      <div className="text-xs text-medical-blue-900">
+                        <p>
+                          File: {req.dataShare.fileName}{' '}
+                          {req.dataShare.fileSize &&
+                            `(${(req.dataShare.fileSize / 1024 / 1024).toFixed(2)} MB)`}
+                        </p>
+                        {req.dataShare.fileContent && (
+                          <a
+                            href={req.dataShare.fileContent}
+                            download={req.dataShare.fileName}
+                            className="text-medical-blue-700 font-semibold hover:underline mt-1 inline-block"
+                          >
+                            Download / View
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Propose time / slot
+                    </label>
+                    <input
+                      type="text"
+                      value={requestResponses[req.id]?.slot || ''}
+                      onChange={(e) => updateResponseField(req.id, 'slot', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent outline-none text-sm"
+                      placeholder="e.g., Dec 20, 3:30 PM"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Note to patient
+                    </label>
+                    <input
+                      type="text"
+                      value={requestResponses[req.id]?.note || ''}
+                      onChange={(e) => updateResponseField(req.id, 'note', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent outline-none text-sm"
+                      placeholder="Add scheduling guidance..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDecision(req.id, 'accepted')}
+                    disabled={processingRequestId === req.id}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-60"
+                  >
+                    {processingRequestId === req.id && req.status !== 'accepted'
+                      ? 'Updating...'
+                      : 'Accept'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDecision(req.id, 'reschedule')}
+                    disabled={processingRequestId === req.id}
+                    className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm disabled:opacity-60"
+                  >
+                    Propose new time
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRequestDecision(req.id, 'declined')}
+                    disabled={processingRequestId === req.id}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm disabled:opacity-60"
+                  >
+                    Decline
+                  </button>
+                </div>
+
+                <p className="mt-2 text-xs text-gray-500">
+                  Requested on {new Date(req.createdAt || Date.now()).toLocaleString()}
+                </p>
+                {req.scheduleNote && (
+                  <p className="text-xs text-gray-600">Doctor note: {req.scheduleNote}</p>
+                )}
+                {req.proposedSlot && (
+                  <p className="text-xs text-gray-600">Last proposed slot: {req.proposedSlot}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

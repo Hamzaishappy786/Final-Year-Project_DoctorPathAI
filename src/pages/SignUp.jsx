@@ -16,7 +16,8 @@ const SignUp = () => {
     bloodGroup: 'O+',
     specialization: '',
     qualifications: '',
-    experience: ''
+    experience: '',
+    hospital: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,8 +67,6 @@ const SignUp = () => {
           navigate('/patient/dashboard');
         } else if (result.user.role === 'doctor') {
           navigate('/doctor/dashboard');
-        } else if (result.user.role === 'admin') {
-          navigate('/admin/dashboard');
         }
       } else {
         setError(result.message || 'Signup failed. Please try again.');
@@ -261,6 +260,23 @@ const SignUp = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent outline-none transition"
                   placeholder="e.g., Hepatology & Liver Cancer"
                 />
+              </div>
+              <div>
+                <label htmlFor="hospital" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hospital / Affiliation
+                </label>
+                <input
+                  id="hospital"
+                  type="text"
+                  name="hospital"
+                  value={formData.hospital}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent outline-none transition"
+                  placeholder="e.g., Aga Khan University Hospital"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Optional: helps patients find you by hospital
+                </p>
               </div>
               <div>
                 <label htmlFor="qualifications" className="block text-sm font-medium text-gray-700 mb-2">

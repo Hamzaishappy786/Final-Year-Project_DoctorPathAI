@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import PatientDashboard from './pages/PatientDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import DoctorDataEntry from './pages/DoctorDataEntry';
 import KnowledgeGraphViewer from './pages/KnowledgeGraphViewer';
@@ -175,57 +174,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['doctor']}>
               <KnowledgeGraphViewer />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Admin Routes */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/patients"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <div className="p-6">
-                <h2 className="text-2xl font-bold mb-4">Patient Management</h2>
-                <p className="text-gray-600">Patient management page coming soon...</p>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/doctors"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <div className="p-6">
-                <h2 className="text-2xl font-bold mb-4">Doctor Management</h2>
-                <p className="text-gray-600">Doctor management page coming soon...</p>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/appointments"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <div className="p-6">
-                <h2 className="text-2xl font-bold mb-4">Appointment Management</h2>
-                <p className="text-gray-600">Appointment management page coming soon...</p>
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/profile"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <Profile />
             </ProtectedRoute>
           }
         />

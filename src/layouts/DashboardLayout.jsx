@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile } from '../services/api';
+import logo from '../logo.png';
 
 const DashboardLayout = ({ children, userRole, userName: initialUserName }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -57,12 +58,6 @@ const DashboardLayout = ({ children, userRole, userName: initialUserName }) => {
       { path: '/doctor/diagnosis', label: 'Diagnosis Tool', icon: '🩺' },
       { path: '/doctor/data-entry', label: 'Data Entry', icon: '📝' },
     ],
-    admin: [
-      { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-      { path: '/admin/patients', label: 'Patients', icon: '👥' },
-      { path: '/admin/doctors', label: 'Doctors', icon: '👨‍⚕️' },
-      { path: '/admin/appointments', label: 'Appointments', icon: '📅' },
-    ],
   };
 
   const currentMenuItems = menuItems[userRole] || [];
@@ -76,9 +71,12 @@ const DashboardLayout = ({ children, userRole, userName: initialUserName }) => {
         } bg-medical-blue-700 text-white transition-all duration-300 flex flex-col`}
       >
         <div className="p-4 flex items-center justify-between">
-          <h1 className={`font-bold text-xl ${sidebarOpen ? 'block' : 'hidden'}`}>
-            DoctorPath AI
-          </h1>
+          <div className="flex items-center space-x-2">
+            <img src={logo} alt="DoctorPath AI" className="h-8 w-8 rounded-lg object-contain" />
+            <h1 className={`font-bold text-xl ${sidebarOpen ? 'block' : 'hidden'}`}>
+              DoctorPath AI
+            </h1>
+          </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-medical-blue-600 rounded-lg"

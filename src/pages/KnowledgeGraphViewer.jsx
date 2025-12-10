@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getKnowledgeGraph, getPatientDataEntries } from '../services/api';
-import { getPatientData } from '../services/api';
+import { getKnowledgeGraph, getPatientDataEntries, getPatientData } from '../services/api';
 
 const KnowledgeGraphViewer = () => {
   const { patientId } = useParams();
@@ -10,6 +9,8 @@ const KnowledgeGraphViewer = () => {
   const [knowledgeGraph, setKnowledgeGraph] = useState(null);
   const [patient, setPatient] = useState(null);
   const [dataEntries, setDataEntries] = useState([]);
+  const [modelSummary, setModelSummary] = useState('');
+  const [modelRisk, setModelRisk] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -23,6 +24,10 @@ const KnowledgeGraphViewer = () => {
         setKnowledgeGraph(graph);
         setPatient(patientData);
         setDataEntries(entries);
+        if (graph?.metadata) {
+          setModelSummary(graph.metadata.summary || '');
+          setModelRisk(graph.metadata.riskScores || null);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -91,7 +96,7 @@ const KnowledgeGraphViewer = () => {
             <div className="text-6xl mb-4">🕸️</div>
             <p className="text-gray-600 font-medium">Knowledge Graph Visualization</p>
             <p className="text-sm text-gray-500 mt-2">
-              Python script integration required to display graph
+              Model integration returns graph structure; visualization placeholder remains.
             </p>
             {knowledgeGraph.nodes && (
               <p className="text-xs text-gray-400 mt-2">
@@ -131,6 +136,21 @@ const KnowledgeGraphViewer = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {(modelSummary || modelRisk) && (
+          <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-green-900 mb-2">Model Insights</h4>
+            {modelSummary && <p className="text-sm text-green-800 mb-2">{modelSummary}</p>}
+            {modelRisk && (
+              <div className="text-sm text-green-800">
+                <p className="font-medium text-green-900 mb-1">Risk Scores</p>
+                <pre className="bg-white rounded-md p-2 text-xs text-green-900 overflow-auto">
+{JSON.stringify(modelRisk, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         )}
       </div>

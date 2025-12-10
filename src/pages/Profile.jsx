@@ -436,26 +436,6 @@ const Profile = () => {
             </div>
           )}
 
-          {/* Admin fields */}
-          {userRole === 'admin' && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Administrative Information</h3>
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Role
-                </label>
-                <input
-                  id="role"
-                  type="text"
-                  name="role"
-                  value={formData.role || 'System Administrator'}
-                  disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
             <button

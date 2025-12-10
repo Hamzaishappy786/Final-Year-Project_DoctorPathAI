@@ -25,8 +25,6 @@ const Login = () => {
           navigate('/patient/dashboard');
         } else if (result.user.role === 'doctor') {
           navigate('/doctor/dashboard');
-        } else if (result.user.role === 'admin') {
-          navigate('/admin/dashboard');
         }
       } else {
         setError(result.message || 'Invalid credentials');
@@ -108,7 +106,6 @@ const Login = () => {
           <div className="text-xs text-gray-500 space-y-1">
             <p>Patient: <span className="font-mono">patient@test.com</span></p>
             <p>Doctor: <span className="font-mono">doctor@test.com</span></p>
-            <p>Admin: <span className="font-mono">admin@test.com</span></p>
           </div>
         </div>
       </div>

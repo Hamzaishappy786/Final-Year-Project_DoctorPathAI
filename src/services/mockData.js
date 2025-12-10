@@ -262,6 +262,7 @@ export const mockDoctors = [
     phone: "+92 300 1112233",
     experience: "15 years",
     qualifications: "MBBS, FCPS (Gastroenterology)",
+    hospital: "Aga Khan University Hospital",
     patients: [1, 2, 3]
   },
   {
@@ -272,16 +273,8 @@ export const mockDoctors = [
     phone: "+92 321 2223344",
     experience: "12 years",
     qualifications: "MBBS, FCPS (Oncology)",
+    hospital: "Shaukat Khanum Memorial Cancer Hospital",
     patients: [4, 5]
-  }
-];
-
-export const mockAdmins = [
-  {
-    id: 1,
-    name: "Admin User",
-    email: "admin@test.com",
-    role: "System Administrator"
   }
 ];
 
@@ -353,5 +346,51 @@ export const chatbotResponses = [
   "Early detection is crucial for successful cancer treatment. If you have concerns, please don't hesitate to contact your doctor.",
   "Regular screenings and monitoring are important for cancer prevention and early detection. Have you discussed screening options with your doctor?",
   "I'm here to help answer your questions about cancer diagnosis, treatment, and management. What specific information are you looking for?",
+];
+
+// Hospital list with city and codes
+export const mockHospitals = [
+  {
+    name: "Aga Khan University Hospital",
+    city: "Karachi",
+    branchCode: "KHI01",
+    totalPatients: 120,
+    totalDoctors: 45
+  },
+  {
+    name: "Shaukat Khanum Memorial Cancer Hospital",
+    city: "Lahore",
+    branchCode: "LHE02",
+    totalPatients: 98,
+    totalDoctors: 38
+  },
+  {
+    name: "Liaquat National Hospital",
+    city: "Karachi",
+    branchCode: "KHI03",
+    totalPatients: 75,
+    totalDoctors: 30
+  },
+  {
+    name: "Dow University Hospital",
+    city: "Karachi",
+    branchCode: "KHI04",
+    totalPatients: 60,
+    totalDoctors: 22
+  },
+  {
+    name: "Punjab Institute of Cardiology",
+    city: "Lahore",
+    branchCode: "LHE05",
+    totalPatients: 82,
+    totalDoctors: 28
+  },
+  {
+    name: "Independent / Private Clinic",
+    city: "Islamabad",
+    branchCode: "ISB01",
+    totalPatients: 25,
+    totalDoctors: 10
+  }
 ];
 
